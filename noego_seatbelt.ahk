@@ -2,13 +2,13 @@
 showTooltips := true
 
 ; Define the key to be sent
-keyToSend := "k"  ; Replace 'k' with the desired key
+keyToSend := "b"  ; Replace with the desired key
 
 ; Define the X and Y coordinates for three areas
-Coords := {1: {x: 74, y: 53}, 2: {x: 209, y: 51}, 3: {x: 199, y: 51}}
+Coords := {1: {x: 2303, y: 1201}, 2: {x: 2279, y: 1357}}
 
 ; Define the acceptable color values for each area
-acceptableColors := { 1: ["0xF0E"], 2: ["0xE5E", "0x393"], 3: ["0x5B5", "0x393"] }
+acceptableColors := { 1: ["0x33C"], 2: ["0x329", "0x339"]}
 
 ; Start an infinite loop
 Loop
@@ -19,10 +19,11 @@ Loop
         ; Initialize variables
         colors := []
         TooltipText := ""
-        allColorsMatch := true
+        colorMatchForFirst := false
+        colorMismatchForSecond := true
 
-        ; Check colors for each area
-        Loop, 3
+        ; Check colors for each of the two areas
+        Loop, 2
         {
             coord := Coords[A_Index]
             PixelGetColor, color, % coord.x, % coord.y, RGB
@@ -30,7 +31,12 @@ Loop
             colors[A_Index] := SubColor
             expectedColors := JoinColors(acceptableColors[A_Index])
             matchStatus := IsColorInRange(SubColor, acceptableColors[A_Index])
-            allColorsMatch := allColorsMatch && matchStatus
+            
+            if (A_Index = 1)
+                colorMatchForFirst := matchStatus
+            if (A_Index = 2 && matchStatus)
+                colorMismatchForSecond := false
+
             matchText := matchStatus ? "Match" : "No Match"
             TooltipText .= "Area " A_Index ": " SubColor " (Expected: " expectedColors ") (Match: " matchText ")`n"
         }
@@ -38,30 +44,15 @@ Loop
         ; Display tooltip with color values and match status
         if (showTooltips)
         {
-            Tooltip, %TooltipText%, 5, 100
-            ;Sleep, 2000
+            Tooltip, %TooltipText%, 0, 0
         }
 
-        if (allColorsMatch)
+        ; Check if conditions are met (match for first, mismatch for second)
+        if (colorMatchForFirst && colorMismatchForSecond)
         {
-            ; if (showTooltips)
-            ; {
-            ;     Tooltip, "All colors match. Attempting to send key: " . keyToSend, 400, 300
-            ;     Sleep, 2000
-            ; }
             SendKey(keyToSend)
         }
-        ; else if (showTooltips)
-        ; {
-        ;     Tooltip, "Not all colors match.", 400, 300
-        ;     Sleep, 2000
-        ; }
     }
-    ; else if (showTooltips)
-    ; {
-    ;     Tooltip, "Target window not active.", 400, 300
-    ;     Sleep, 2000
-    ; }
     Sleep, 200
 }
 
