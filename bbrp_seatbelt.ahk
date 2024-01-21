@@ -1,49 +1,99 @@
+; Toggle for showing tooltips (set to true to show tooltips, false to hide them)
+showTooltips := false
+
+; Define the key to be sent
+keyToSend := "k"  ; Replace 'k' with the desired key
+
 ; Define the X and Y coordinates for three areas
+Coords := {1: {x: 74, y: 53}, 2: {x: 209, y: 51}, 3: {x: 199, y: 51}}
 
-area1X := 74
-area1Y := 53
-
-area2X := 209
-area2Y := 51
-
-area3X := 199
-area3Y := 51
+; Define the acceptable color values for each area
+acceptableColors := {1: ["0xF0E"], 2: ["0xE5E", "0x393"], 3: ["0x5B5", "0x393"]}
 
 ; Start an infinite loop
 Loop
 {
-    ; Set the title match mode to 2 (a window's title can contain WinTitle anywhere inside it to be a match)
     SetTitleMatchMode, 2
-
-    ; Check if the active window's title contains "by Cfx.re -"
     if WinActive("by Cfx.re -")
     {
-        ; Get the color of the pixel at the specified coordinates for each area
-        PixelGetColor, Color1, %area1X%, %area1Y%
-        PixelGetColor, Color2, %area2X%, %area2Y%
-        PixelGetColor, Color3, %area3X%, %area3Y%
+        ; Initialize variables
+        colors := []
+        TooltipText := ""
+        allColorsMatch := true
 
-        ; Extract the first 5 characters from each color value
-        ColorSubStr1 := SubStr(Color1, 1, 5)
-        ColorSubStr2 := SubStr(Color2, 1, 5)
-        ColorSubStr3 := SubStr(Color3, 1, 5)
-
-        ; Uncomment below to Display a tooltip with the color values at the specified screen coordinates
-        ;kToolTip %Color1% %Color2% %Color3%, 5, 100
-
-        ; If the color values for the first two areas are within a certain range, and the color value for the third area is not within a different range
-        if (((ColorSubStr1 = 0xF1E) or (ColorSubStr1 = 0xDBE) or (ColorSubStr1 = 0xE4E) or (ColorSubStr1 = 0xE4D) or (ColorSubStr1 = 0xE9E)) and ((ColorSubStr2 = 0xDBE) or (ColorSubStr2 = 0x3A3) or (ColorSubStr2 = 0xE4E) or (ColorSubStr2 = 0xE4D) or (ColorSubStr2 = 0xE9E) or (ColorSubStr3 = 0x373) or (ColorSubStr3 = 0x323) or (ColorSubStr3 = 0x343) or (ColorSubStr3 = 0x313) or (ColorSubStr3 = 0x3C3) or (ColorSubStr3 = 0x383)))
+        ; Check colors for each area
+        Loop, 3
         {
-            ; Send the "b" key down event, wait for 50 milliseconds, then send the "b" key up event
-            Send {k down}
-            Sleep, 50
-            Send {k up}
+            coord := Coords[A_Index]
+            PixelGetColor, color, % coord.x, % coord.y, RGB
+            SubColor := SubStr(color, 3, 3)  ; Get the first 3 characters of the RGB part
+            colors[A_Index] := SubColor
+            expectedColors := JoinColors(acceptableColors[A_Index])
+            matchStatus := IsColorInRange(SubColor, acceptableColors[A_Index])
+            allColorsMatch := allColorsMatch && matchStatus
+            matchText := matchStatus ? "Match" : "No Match"
+            TooltipText .= "Area " A_Index ": " SubColor " (Expected: " expectedColors ") (Match: " matchText ")`n"
+        }
 
-            ; Wait for 1000 milliseconds (1 second)
-            Sleep, 200
+        ; Display tooltip with color values and match status
+        if (showTooltips)
+        {
+            Tooltip, %TooltipText%, 5, 100
+            Sleep, 2000
+        }
+
+        if (allColorsMatch)
+        {
+            if (showTooltips)
+            {
+                Tooltip, "All colors match. Attempting to send key: " . keyToSend, 400, 300
+                Sleep, 2000
+            }
+            SendKey(keyToSend)
+        }
+        else if (showTooltips)
+        {
+            Tooltip, "Not all colors match.", 400, 300
+            Sleep, 2000
         }
     }
-
-    ; Wait for 1000 milliseconds (1 second) before the next iteration of the loop
+    else if (showTooltips)
+    {
+        Tooltip, "Target window not active.", 400, 300
+        Sleep, 2000
+    }
     Sleep, 200
+}
+
+JoinColors(colorsArray)
+{
+    result := ""
+    for index, color in colorsArray
+    {
+        if (index != 1)
+            result .= ", "
+        result .= color
+    }
+    return result
+}
+
+IsColorInRange(color, acceptableColors)
+{
+    for index, accColor in acceptableColors
+    {
+        if (color = SubStr(accColor, 3, 3))
+            return true
+    }
+    return false
+}
+
+SendKey(key)
+{
+    Send, %key%
+    if (showTooltips)
+    {
+        Tooltip, "Pressed key: " . key, 400, 300  ; Ensure proper concatenation of the 'key' variable with the string
+        Sleep, 3000
+        Tooltip  ; This hides the tooltip
+    }
 }
